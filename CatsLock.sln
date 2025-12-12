@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36401.2 d17.14
+VisualStudioVersion = 17.14.36401.2
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualCleaner", "VisualCleaner\VisualCleaner.csproj", "{F4FCE0F5-1E02-4BE1-8FA7-C9708D56C1F9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CatsLock", "VisualCleaner\CatsLock.csproj", "{F4FCE0F5-1E02-4BE1-8FA7-C9708D56C1F9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -9,7 +9,7 @@ using System.IO;
 //TODO: Add process kill when trying to run the same process again 
 //TODO: Do not let the user end the process while cleaning mode is on 
 
-namespace VisualCleaner
+namespace CatsLock
 {
     internal static class Program
     {
@@ -35,6 +35,7 @@ namespace VisualCleaner
         private const int VK_CONTROL = 0x11;
         private const int VK_MENU = 0x12; // AKA Alt key
         private const int VK_F12 = 0x7B;
+        private const int VK_CAPSLOCK = 0x14;
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -73,7 +74,7 @@ namespace VisualCleaner
             iconIdle = LoadIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "broom.ico"));
 
             menu = new ContextMenuStrip();
-            toggleItem = new ToolStripMenuItem("Enable Cleaning Mode", null, OnToggleClick);
+            toggleItem = new ToolStripMenuItem("Enable Cat Paw Mode", null, OnToggleClick);
             aboutItem = new ToolStripMenuItem("About", null, OnAboutClick);
             exitItem = new ToolStripMenuItem("Exit", null, OnExitClick);
 
@@ -84,16 +85,13 @@ namespace VisualCleaner
                 Icon = iconOff,
                 ContextMenuStrip = menu,
                 Visible = true,
-                Text = "VisualCleaner - Cleaning Mode: Off"
+                Text = "CatsLock - Cat Paw Mode: Off"
             };
 
             trayIcon.DoubleClick += (s, e) => ToggleCleaningMode();
 
-            timer = new System.Windows.Forms.Timer { Interval = 1000 }; // Checks every second
-            timer.Tick += (s, e) => CheckFailsafe();
-            timer.Start();
+            ShowBalloon("Keyboard Cat Paw Mode ready", "Toggle with Ctrl + Alt + F12");
 
-            ShowBalloon("Keyboard Cleaning Mode ready", "Toggle with Ctrl + Alt + F12");
         }
 
         //TODO: Fix balloon tip showing the wrong icon on the top right corner
@@ -109,14 +107,13 @@ namespace VisualCleaner
         private void OnAboutClick(object? sender, EventArgs e)
         {
             MessageBox.Show(
-            "VisualCleaner v1.0 made by Miracle Aigbogun\n\n" +
-            "Keyboard Cleaning Mode\n\n" +
-            "• Toggle: Ctrl + Alt + F12\n" +
-            "• Blocks all keyboard keys while ON (mouse still works)\n" +
-            "• Toggle via tray menu or double-click the tray icon\n" +
-            $"• Failsafe: auto-off after {autoDisableMinutes} minutes\n\n" +
+            "CatsLock (Keyboard Keys Blocking Utility)\n\n" +
+            "Keyboard Cat Paw Mode\n\n" +
+            "ï¿½ Toggle: Capslock or Ctrl + Alt + F12\n" +
+            "ï¿½ Blocks all keyboard keys while On (mouse still works)\n" +
+            "ï¿½ Toggle via tray menu or double-click the tray icon\n" +
             "Tip: You can right-click the tray icon to exit.",
-            "Keyboard Cleaning Mode",
+            "Keyboard Cat Paw Mode",
             MessageBoxButtons.OK,
             MessageBoxIcon.Information
             );
@@ -141,17 +138,17 @@ namespace VisualCleaner
             if (cleaningMode)
             {
                 cleaningStartedUtc = DateTime.UtcNow;
-                toggleItem.Text = "Disable Cleaning Mode";
+                toggleItem.Text = "Disable Cat Paw Mode";
                 trayIcon.Icon = iconOn;
                 trayIcon.Text = TooltipText();
-                ShowBalloon("Cleaning Mode ON", "All keyboard input is BLOCKED. Toggle off to restore.");
+                ShowBalloon("Cat Paw Mode On", "All keyboard input is blocked. Toggle off to restore.");
             }
             else
             {
-                toggleItem.Text = "Enable Cleaning Mode";
-                trayIcon.Text = "VisualCleaner - Cleaning Mode: Off";
+                toggleItem.Text = "Enable Cat Paw Mode";
+                trayIcon.Text = "CatsLock - Cat Paw Mode: Off";
                 trayIcon.Icon = iconOff;
-                ShowBalloon("Cleaning Mode Disabled", "Keyboard input restored.");
+                ShowBalloon("Cat Paw Mode Disabled", "Keyboard input restored.");
             }
         }
 
@@ -159,7 +156,7 @@ namespace VisualCleaner
         {
             try
             {
-                if(File.Exists(path))
+                if (File.Exists(path))
                 {
                     return new Icon(path);
                 }
@@ -168,26 +165,15 @@ namespace VisualCleaner
                     MessageBox.Show($"Icon file not found: {path}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return System.Drawing.SystemIcons.Application;
                 }
-            } catch { }
+            }
+            catch { }
 
             return null;
         }
 
         private string TooltipText()
         {
-            return cleaningMode ? "Cleaning Mode: ON (Ctrl + Alt + F12 to toggle)" : "Cleaning Mode: OFF (Ctrl + Alt + F12 to toggle) ";
-        }
-
-        private void CheckFailsafe()
-        {
-            if (cleaningMode && (DateTime.UtcNow - cleaningStartedUtc).TotalMinutes >= autoDisableMinutes)
-            {
-                ToggleCleaningMode();
-                toggleItem.Text = "Enable Cleaning Mode";
-                trayIcon.Icon = iconIdle;
-                trayIcon.Text = TooltipText();
-                ShowBalloon("Auto-disabled", "Cleaning mode turned OFF (failsafe)");
-            }
+            return cleaningMode ? "Cat Paw Mode: On (Ctrl + Alt + F12 to toggle)" : "Cat Paw Mode: Off (Ctrl + Alt + F12 to toggle) ";
         }
 
         private IntPtr SetHook(LowLevelKeyboardProc proc)
@@ -207,7 +193,22 @@ namespace VisualCleaner
 
         private bool IsToggleCombo(int vkCode)
         {
+            //return vkCode == IsKeyDown(VK_
             return vkCode == VK_F12 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        }
+        private static bool IsKeyToggled(int vkCode)
+        {
+            return (GetKeyState(vkCode) & 0x1) != 0;
+        }
+        private bool IsCapsLock(int vkCode)
+        {
+            //return vkCode == IsKeyDown(VK_
+            return vkCode == VK_CAPSLOCK;// && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+        }
+
+        private bool IsCapsLockToggled()
+        {
+            return Control.IsKeyLocked(Keys.CapsLock);
         }
 
         private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -215,6 +216,22 @@ namespace VisualCleaner
             if (nCode >= 0 && (wParam == (IntPtr)WM_KEYDOWN || wParam == (IntPtr)WM_SYSKEYDOWN))
             {
                 int vkCode = Marshal.ReadInt32(lParam);
+                if (IsCapsLock(vkCode))
+                {
+                    if (!IsCapsLockToggled())
+                    {
+                        if (!cleaningMode)
+                            ToggleCleaningMode();
+
+                        //return (IntPtr)1; // Block the toggle key combo
+                        return CallNextHookEx(hookId, nCode, wParam, lParam);
+                    } else {
+                        if (cleaningMode)
+                            ToggleCleaningMode();
+
+                        return CallNextHookEx(hookId, nCode, wParam, lParam);
+                    }
+                }
                 if (IsToggleCombo(vkCode))
                 {
                     ToggleCleaningMode();
@@ -233,7 +250,7 @@ namespace VisualCleaner
         {
             if (disposing)
             {
-                if(hookId != IntPtr.Zero) UnhookWindowsHookEx(hookId);
+                if (hookId != IntPtr.Zero) UnhookWindowsHookEx(hookId);
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
                 timer.Dispose();
