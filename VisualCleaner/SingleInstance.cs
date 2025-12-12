@@ -9,8 +9,8 @@ namespace CatsLock
 {
     internal class SingleInstance
     {
-        private const string MutexName = "Global\\KeyboardCleaningMode.TrayApp.v1";
-        private const string ExitEventName = "Global\\KeyboardCleaningMode.TrayApp.v1.ExitEvent";
+        private const string MutexName = "Global\\CatsLock.TrayApp.v1";
+        private const string ExitEventName = "Global\\CatsLock.TrayApp.v1.ExitEvent";
         private static Mutex? mutex;
 
 

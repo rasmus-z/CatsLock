@@ -8,6 +8,7 @@ using System.IO;
 
 //TODO: Add process kill when trying to run the same process again 
 //TODO: Do not let the user end the process while cleaning mode is on 
+//TODO: Add to (Windows) Startup menu item toggle
 
 namespace CatsLock
 {
@@ -50,15 +51,13 @@ namespace CatsLock
 
         // App State 
         private bool cleaningMode = false;
-        private DateTime cleaningStartedUtc;
-        private readonly int autoDisableMinutes = 10;
 
         // User Interface
         private Icon iconOn;
         private Icon iconOff;
         private Icon iconIdle;
         private readonly NotifyIcon trayIcon;
-        private readonly System.Windows.Forms.Timer timer;
+
         private readonly ContextMenuStrip menu;
         private readonly ToolStripMenuItem toggleItem;
         private readonly ToolStripMenuItem exitItem;
@@ -71,7 +70,9 @@ namespace CatsLock
 
             iconOff = LoadIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "cleaningDisabled.ico"));
             iconOn = LoadIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "cleaningEnabled.ico"));
-            iconIdle = LoadIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "broom.ico"));
+
+            Bitmap bmp = CatsLock.Properties.Resources.paw;
+            iconIdle = Icon.FromHandle(bmp.GetHicon());
 
             menu = new ContextMenuStrip();
             toggleItem = new ToolStripMenuItem("Enable Cat Paw Mode", null, OnToggleClick);
@@ -90,17 +91,21 @@ namespace CatsLock
 
             trayIcon.DoubleClick += (s, e) => ToggleCleaningMode();
 
-            ShowBalloon("Keyboard Cat Paw Mode ready", "Toggle with Ctrl + Alt + F12");
+            ShowBalloon("Keyboard Cat Paw Mode ready", "Toggle with Capslock");
 
         }
 
-        //TODO: Fix balloon tip showing the wrong icon on the top right corner
         private void ShowBalloon(string title, string text)
         {
             trayIcon.BalloonTipTitle = title;
             trayIcon.BalloonTipText = text;
             trayIcon.BalloonTipIcon = ToolTipIcon.Info;
-            trayIcon.Icon = iconIdle;
+
+            if (cleaningMode)
+                trayIcon.Icon = iconOn;
+            else
+                trayIcon.Icon = iconIdle;
+
             trayIcon.ShowBalloonTip(3000);
         }
 
@@ -109,9 +114,9 @@ namespace CatsLock
             MessageBox.Show(
             "CatsLock (Keyboard Keys Blocking Utility)\n\n" +
             "Keyboard Cat Paw Mode\n\n" +
-            "� Toggle: Capslock or Ctrl + Alt + F12\n" +
-            "� Blocks all keyboard keys while On (mouse still works)\n" +
-            "� Toggle via tray menu or double-click the tray icon\n" +
+            "Toggle: Capslock or Ctrl + Alt + F12\n" +
+            "Blocks all keyboard keys while On (mouse still works)\n" +
+            "Toggle via tray menu or double-click the tray icon\n" +
             "Tip: You can right-click the tray icon to exit.",
             "Keyboard Cat Paw Mode",
             MessageBoxButtons.OK,
@@ -127,7 +132,6 @@ namespace CatsLock
             trayIcon.Visible = false;
             trayIcon.Dispose();
             trayIcon.Dispose();
-            timer.Stop();
             trayIcon.Dispose();
             ExitThread();
         }
@@ -137,7 +141,6 @@ namespace CatsLock
             cleaningMode = !cleaningMode;
             if (cleaningMode)
             {
-                cleaningStartedUtc = DateTime.UtcNow;
                 toggleItem.Text = "Disable Cat Paw Mode";
                 trayIcon.Icon = iconOn;
                 trayIcon.Text = TooltipText();
@@ -173,7 +176,7 @@ namespace CatsLock
 
         private string TooltipText()
         {
-            return cleaningMode ? "Cat Paw Mode: On (Ctrl + Alt + F12 to toggle)" : "Cat Paw Mode: Off (Ctrl + Alt + F12 to toggle) ";
+            return cleaningMode ? "Cat Paw Mode: On (Capslock or Ctrl + Alt + F12 to toggle)" : "Cat Paw Mode: Off (Capslock or Ctrl + Alt + F12 to toggle) ";
         }
 
         private IntPtr SetHook(LowLevelKeyboardProc proc)
@@ -196,14 +199,10 @@ namespace CatsLock
             //return vkCode == IsKeyDown(VK_
             return vkCode == VK_F12 && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
         }
-        private static bool IsKeyToggled(int vkCode)
-        {
-            return (GetKeyState(vkCode) & 0x1) != 0;
-        }
+
         private bool IsCapsLock(int vkCode)
         {
-            //return vkCode == IsKeyDown(VK_
-            return vkCode == VK_CAPSLOCK;// && IsKeyDown(VK_CONTROL) && IsKeyDown(VK_MENU);
+            return vkCode == VK_CAPSLOCK;
         }
 
         private bool IsCapsLockToggled()
@@ -225,7 +224,9 @@ namespace CatsLock
 
                         //return (IntPtr)1; // Block the toggle key combo
                         return CallNextHookEx(hookId, nCode, wParam, lParam);
-                    } else {
+                    }
+                    else
+                    {
                         if (cleaningMode)
                             ToggleCleaningMode();
 
@@ -253,7 +254,6 @@ namespace CatsLock
                 if (hookId != IntPtr.Zero) UnhookWindowsHookEx(hookId);
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
-                timer.Dispose();
                 menu.Dispose();
             }
 
